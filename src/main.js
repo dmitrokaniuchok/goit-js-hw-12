@@ -1,17 +1,29 @@
 import { fetchImg } from './js/pixabay-api';
-import { displayGallery, clearGallery } from './js/render-functions';
+import {
+  displayGallery,
+  clearGallery,
+  showLoader,
+  hideLoader,
+  smoothScroll,
+} from './js/render-functions';
 import iziToast from 'izitoast';
 import 'izitoast/dist/css/iziToast.min.css';
 
 const searchForm = document.querySelector('.form');
 const searchInput = document.querySelector('.form-input');
-const loader = document.querySelector('.loader');
+const loadMoreBtn = document.querySelector('.load-more');
 
+let searchQuery = '';
+let currentPage = 1;
+let totalHits = 0;
+const perPage = 15;
+
+// Обробник події сабміту форми
 searchForm.addEventListener('submit', async event => {
   event.preventDefault();
 
-  const query = searchInput.value.trim();
-  if (!query) {
+  searchQuery = searchInput.value.trim();
+  if (!searchQuery) {
     iziToast.error({
       title: 'Error',
       message: 'Enter a search query',
@@ -21,19 +33,21 @@ searchForm.addEventListener('submit', async event => {
   }
 
   clearGallery();
-  loader.style.display = 'block';
+  showLoader();
+  loadMoreBtn.style.display = 'none';
+  currentPage = 1;
 
   try {
-    const images = await fetchImg(query);
-    if (!images || images.length === 0) {
-      iziToast.warning({
-        title: 'No Results',
-        message: 'No images found',
-        position: 'topRight',
-      });
-      return;
+    const { hits, totalHits: total } = await fetchImg(
+      searchQuery,
+      currentPage,
+      perPage
+    );
+    totalHits = total;
+    displayGallery(hits);
+    if (hits.length < totalHits) {
+      loadMoreBtn.style.display = 'block';
     }
-    displayGallery(images);
   } catch (error) {
     iziToast.error({
       title: 'Error',
@@ -41,8 +55,39 @@ searchForm.addEventListener('submit', async event => {
       position: 'topRight',
     });
   } finally {
-    setTimeout(() => {
-      loader.style.display = 'none';
-    }, 500);
+    hideLoader();
+  }
+});
+
+// Обробник натискання на кнопку "Load More"
+loadMoreBtn.addEventListener('click', async () => {
+  currentPage++;
+  showLoader();
+  loadMoreBtn.style.display = 'none';
+
+  try {
+    const { hits } = await fetchImg(searchQuery, currentPage, perPage);
+    // console.log('Fetched images:', hits);
+    displayGallery(hits);
+    smoothScroll();
+
+    if (currentPage * perPage >= totalHits) {
+      loadMoreBtn.style.display = 'none';
+      iziToast.info({
+        title: 'End',
+        message: "We're sorry, but you've reached the end of search results",
+        position: 'topRight',
+      });
+    } else {
+      loadMoreBtn.style.display = 'block';
+    }
+  } catch (error) {
+    iziToast.error({
+      title: 'Error',
+      message: 'Failed to fetch more images.',
+      position: 'topRight',
+    });
+  } finally {
+    hideLoader();
   }
 });

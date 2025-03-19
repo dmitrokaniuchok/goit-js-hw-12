@@ -3,6 +3,8 @@ import 'simplelightbox/dist/simple-lightbox.min.css';
 import iziToast from 'izitoast';
 import 'izitoast/dist/css/iziToast.min.css';
 
+const gallery = document.querySelector('.gallery');
+const loader = document.querySelector('.loader');
 let lightbox = new SimpleLightbox('.gallery a', {
   captionsData: 'alt',
   captionDelay: 250,
@@ -32,12 +34,7 @@ export function buildGallery(images) {
 export function displayGallery(images) {
   const gallery = document.querySelector('.gallery');
 
-  if (!gallery) {
-    console.error('Gallery element not found!');
-    return;
-  }
-
-  if (images.length === 0) {
+  if (!images || images.length === 0) {
     iziToast.warning({
       title: '❌',
       message:
@@ -47,17 +44,21 @@ export function displayGallery(images) {
     return;
   }
 
-  gallery.innerHTML = buildGallery(images);
+  gallery.insertAdjacentHTML('beforeend', buildGallery(images));
   lightbox.refresh();
 }
 
 export function clearGallery() {
-  const gallery = document.querySelector('.gallery');
-
-  if (!gallery) {
-    console.error('Gallery element not found!');
-    return;
-  }
-
   gallery.innerHTML = '';
 }
+
+export function smoothScroll() {
+  const { height } = gallery.firstElementChild.getBoundingClientRect();
+  window.scrollBy({ top: height * 2, behavior: 'smooth' });
+}
+export const showLoader = () => {
+  loader.style.display = 'block';
+};
+export const hideLoader = () => {
+  loader.style.display = 'none';
+};
